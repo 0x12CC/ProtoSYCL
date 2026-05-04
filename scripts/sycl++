@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+compilation_args=("$@")
+current_directory="$(dirname "$(realpath "$0")")"
+if [[ "$(uname)" == "Darwin" ]]; then
+    preload_path="$current_directory/libProtoSYCLRewriter.dylib"
+    if [[ -f "$preload_path" ]]; then
+        export DYLD_INSERT_LIBRARIES="$preload_path"
+    fi
+else
+    preload_path="$current_directory/libProtoSYCLRewriter.so"
+    if [[ -f "$preload_path" ]]; then
+        export LD_PRELOAD="$preload_path"
+    fi
+fi
+clang++ "${compilation_args[@]}"
+exit_code=$?
+exit $exit_code
