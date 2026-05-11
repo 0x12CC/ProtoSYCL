@@ -187,14 +187,14 @@ public:
 
   /* -- convenience shortcuts -- */
 
-  template <typename KernelName, typename KernelType>
+  template <typename KernelName = detail::unnamed_kernel, typename KernelType>
   event single_task(const KernelType &kernelFunc) {
     return submit([&](handler &cgh) {
       cgh.single_task<KernelName, KernelType>(kernelFunc);
     });
   }
 
-  template <typename KernelName, typename KernelType>
+  template <typename KernelName = detail::unnamed_kernel, typename KernelType>
   event single_task(event depEvent, const KernelType &kernelFunc) {
     return submit([&](handler &cgh) {
       cgh.depends_on(depEvent);
@@ -202,7 +202,7 @@ public:
     });
   }
 
-  template <typename KernelName, typename KernelType>
+  template <typename KernelName = detail::unnamed_kernel, typename KernelType>
   event single_task(const std::vector<event> &depEvents,
                     const KernelType &kernelFunc) {
     return submit([&](handler &cgh) {
@@ -231,7 +231,8 @@ public:
 
   // Parameter pack acts as-if: Reductions&&... reductions, const KernelType
   // &kernelFunc
-  template <typename KernelName, int Dims, typename... Rest>
+  template <typename KernelName = detail::unnamed_kernel, int Dims,
+            typename... Rest>
   event parallel_for(range<Dims> numWorkItems, event depEvent, Rest &&...rest) {
     return submit([&](handler &cgh) {
       cgh.depends_on(depEvent);
@@ -242,7 +243,8 @@ public:
 
   // Parameter pack acts as-if: Reductions&&... reductions, const KernelType
   // &kernelFunc
-  template <typename KernelName, int Dims, typename... Rest>
+  template <typename KernelName = detail::unnamed_kernel, int Dims,
+            typename... Rest>
   event parallel_for(range<Dims> numWorkItems,
                      const std::vector<event> &depEvents, Rest &&...rest) {
     return submit([&](handler &cgh) {
@@ -254,7 +256,8 @@ public:
 
   // Parameter pack acts as-if: Reductions&&... reductions, const KernelType
   // &kernelFunc
-  template <typename KernelName, int Dims, typename... Rest>
+  template <typename KernelName = detail::unnamed_kernel, int Dims,
+            typename... Rest>
   event parallel_for(nd_range<Dims> executionRange, Rest &&...rest) {
     return submit([&](handler &cgh) {
       cgh.parallel_for<KernelName, Dims, Rest...>(
@@ -264,7 +267,8 @@ public:
 
   // Parameter pack acts as-if: Reductions&&... reductions, const KernelType
   // &kernelFunc
-  template <typename KernelName, int Dims, typename... Rest>
+  template <typename KernelName = detail::unnamed_kernel, int Dims,
+            typename... Rest>
   event parallel_for(nd_range<Dims> executionRange, event depEvent,
                      Rest &&...rest) {
     return submit([&](handler &cgh) {
@@ -276,7 +280,8 @@ public:
 
   // Parameter pack acts as-if: Reductions&&... reductions, const KernelType
   // &kernelFunc
-  template <typename KernelName, int Dims, typename... Rest>
+  template <typename KernelName = detail::unnamed_kernel, int Dims,
+            typename... Rest>
   event parallel_for(nd_range<Dims> executionRange,
                      const std::vector<event> &depEvents, Rest &&...rest) {
     return submit([&](handler &cgh) {
