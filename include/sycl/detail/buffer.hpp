@@ -58,7 +58,7 @@ struct buffer_impl {
 
 template <typename Container, typename T>
 concept ContiguousContainer = requires(Container container) {
-  { std::data(container) } -> std::convertible_to<T *>;
+  { std::data(container) } -> std::convertible_to<const T *>;
   { std::size(container) } -> std::convertible_to<std::size_t>;
 };
 
