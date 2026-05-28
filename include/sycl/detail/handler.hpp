@@ -497,12 +497,12 @@ public:
     });
   }
 
-  void prefetch(void *ptr, std::size_t numBytes) {
+  void prefetch(const void *ptr, std::size_t numBytes) {
     std::ignore = ptr;
     std::ignore = numBytes;
   }
 
-  void mem_advise(void *ptr, std::size_t numBytes, int advice) {
+  void mem_advise(const void *ptr, std::size_t numBytes, int advice) {
     std::ignore = ptr;
     std::ignore = numBytes;
     std::ignore = advice;

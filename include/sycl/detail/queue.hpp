@@ -367,16 +367,16 @@ public:
     });
   }
 
-  event prefetch(void *ptr, std::size_t numBytes) {
+  event prefetch(const void *ptr, std::size_t numBytes) {
     return submit([&](handler &cgh) { cgh.prefetch(ptr, numBytes); });
   }
-  event prefetch(void *ptr, std::size_t numBytes, event depEvent) {
+  event prefetch(const void *ptr, std::size_t numBytes, event depEvent) {
     return submit([&](handler &cgh) {
       cgh.depends_on(depEvent);
       cgh.prefetch(ptr, numBytes);
     });
   }
-  event prefetch(void *ptr, std::size_t numBytes,
+  event prefetch(const void *ptr, std::size_t numBytes,
                  const std::vector<event> &depEvents) {
     return submit([&](handler &cgh) {
       cgh.depends_on(depEvents);
@@ -384,17 +384,17 @@ public:
     });
   }
 
-  event mem_advise(void *ptr, std::size_t numBytes, int advice) {
+  event mem_advise(const void *ptr, std::size_t numBytes, int advice) {
     return submit([&](handler &cgh) { cgh.mem_advise(ptr, numBytes, advice); });
   }
-  event mem_advise(void *ptr, std::size_t numBytes, int advice,
+  event mem_advise(const void *ptr, std::size_t numBytes, int advice,
                    event depEvent) {
     return submit([&](handler &cgh) {
       cgh.depends_on(depEvent);
       cgh.mem_advise(ptr, numBytes, advice);
     });
   }
-  event mem_advise(void *ptr, std::size_t numBytes, int advice,
+  event mem_advise(const void *ptr, std::size_t numBytes, int advice,
                    const std::vector<event> &depEvents) {
     return submit([&](handler &cgh) {
       cgh.depends_on(depEvents);
