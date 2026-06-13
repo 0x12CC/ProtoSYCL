@@ -42,27 +42,50 @@ struct atomic_fence_scope_capabilities
 
 class context {
 public:
-  explicit context(const property_list &propList = {}) : m_props{propList} {}
+  explicit context(const property_list &propList = {}) : m_props{propList} {
+    check_device_count();
+  }
 
   explicit context(async_handler asyncHandler,
                    const property_list &propList = {})
-      : m_asyncHandler{asyncHandler}, m_props{propList} {}
+      : m_asyncHandler{asyncHandler}, m_props{propList} {
+    check_device_count();
+  }
 
   explicit context(const device &dev, const property_list &propList = {})
-      : m_devices{dev}, m_props{propList} {}
+      : m_devices{dev}, m_props{propList} {
+    check_device_count();
+  }
 
   explicit context(const device &dev, async_handler asyncHandler,
                    const property_list &propList = {})
-      : m_devices{dev}, m_asyncHandler{asyncHandler}, m_props{propList} {}
+      : m_devices{dev}, m_asyncHandler{asyncHandler}, m_props{propList} {
+    check_device_count();
+  }
+
+  explicit context(const platform &plt, const property_list &propList = {})
+      : m_devices{plt.get_devices()}, m_props{propList} {
+    check_device_count();
+  }
+
+  explicit context(const platform &plt, async_handler asyncHandler,
+                   const property_list &propList = {})
+      : m_devices{plt.get_devices()}, m_asyncHandler{asyncHandler},
+        m_props{propList} {
+    check_device_count();
+  }
 
   explicit context(const std::vector<device> &deviceList,
                    const property_list &propList = {})
-      : m_devices{deviceList}, m_props{propList} {}
+      : m_devices{deviceList}, m_props{propList} {
+    check_device_count();
+  }
 
   explicit context(const std::vector<device> &deviceList,
                    async_handler asyncHandler,
                    const property_list &propList = {})
       : m_devices{deviceList}, m_asyncHandler{asyncHandler}, m_props{propList} {
+    check_device_count();
   }
 
   /* -- property interface members -- */
@@ -85,6 +108,13 @@ public:
 private:
   friend detail::queue_impl;
   friend std::hash<context>;
+
+  void check_device_count() const {
+    if (m_devices.empty())
+      detail::throw_sycl_exception(
+          sycl::errc::invalid,
+          "Context must be associated with at least one device");
+  }
 
   std::shared_ptr<std::monostate> m_id{std::make_shared<std::monostate>()};
   std::vector<device> m_devices{device{}};
