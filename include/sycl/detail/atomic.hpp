@@ -1,5 +1,8 @@
 #pragma once
 
+#include <algorithm>
+#include <atomic>
+
 #include "access.hpp"
 #include "memory_order.hpp"
 #include "memory_scope.hpp"
