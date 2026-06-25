@@ -9,7 +9,7 @@ ProtoSYCL is a sample compiler implementation of SYCL 2020. It is primarily inte
 
 ProtoSYCL requires the following dependencies:
 
-* **CMake**: Version 3.30 or higher.
+* **CMake**: Version 3.20 or higher.
 * **LLVM/Clang**: Tested with pre-built version 22.1.4.
 
 ProtoSYCL runs on Linux and macOS. Windows support is not implemented.
@@ -24,7 +24,7 @@ The following configuration fetches ProtoSYCL, sets the project's C++ compiler t
 
 ```cmake
 # Create a SYCL project.
-cmake_minimum_required(VERSION 3.30 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 project(sycl_app VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
