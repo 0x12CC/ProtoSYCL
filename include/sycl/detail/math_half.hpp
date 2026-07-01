@@ -6,10 +6,6 @@ namespace sycl::half_precision {
 
 #define SYCL_UNARY_MATH_FN(NAME, DEFINITION)                                   \
   inline float NAME(float value) { return DEFINITION(value); }                 \
-  inline double NAME(double value) { return DEFINITION(value); }               \
-  inline half NAME(half value) {                                               \
-    return DEFINITION(static_cast<float>(value));                              \
-  }                                                                            \
   template <detail::NonScalar NonScalar> auto NAME(NonScalar value) {          \
     using ReturnT = typename detail::non_scalar_return_type<NonScalar>::type;  \
     using ElementT = typename ReturnT::value_type;                             \
@@ -37,18 +33,6 @@ SYCL_UNARY_MATH_FN(tan, std::tan)
 
 #define SYCL_BINARY_MATH_FN(NAME, DEFINITION)                                  \
   inline float NAME(float lhs, float rhs) { return DEFINITION(lhs, rhs); }     \
-  inline double NAME(double lhs, double rhs) { return DEFINITION(lhs, rhs); }  \
-  inline half NAME(half lhs, half rhs) {                                       \
-    return DEFINITION(static_cast<float>(lhs), static_cast<float>(rhs));       \
-  }                                                                            \
-  template <detail::NonScalar NonScalar>                                       \
-  auto NAME(NonScalar lhs, typename NonScalar::value_type rhs) {               \
-    using ReturnT = typename detail::non_scalar_return_type<NonScalar>::type;  \
-    ReturnT result;                                                            \
-    for (std::size_t i = 0; i < lhs.size(); i++)                               \
-      result[i] = DEFINITION(lhs[i], rhs);                                     \
-    return result;                                                             \
-  }                                                                            \
   template <detail::NonScalar NonScalar1, detail::NonScalar NonScalar2>        \
   auto NAME(NonScalar1 lhs, NonScalar2 rhs) {                                  \
     using ReturnT = typename detail::non_scalar_return_type<NonScalar1>::type; \
