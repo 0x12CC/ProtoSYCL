@@ -19,6 +19,11 @@ constexpr bool is_marray_v<marray<DataT, NumElements>> = true;
 template <typename T>
 concept MArray = is_marray_v<T>;
 
+template <typename T> constexpr std::size_t marray_arg_count_v = 1;
+
+template <typename DataT, std::size_t N>
+constexpr std::size_t marray_arg_count_v<sycl::marray<DataT, N>> = N;
+
 } // namespace detail
 
 template <typename DataT, std::size_t NumElements> class marray {
@@ -36,7 +41,9 @@ public:
       m_elements[i] = arg;
   }
 
-  template <typename... ArgTN> constexpr marray(const ArgTN &...args) {
+  template <typename... ArgTN>
+    requires((detail::marray_arg_count_v<ArgTN> + ...) == NumElements)
+  constexpr marray(const ArgTN &...args) {
     init_with_offset<0>(args...);
   }
 

@@ -99,6 +99,11 @@ add_library(ProtoSYCL STATIC
     include/sycl/detail/kernel.hpp
     include/sycl/detail/local_accessor.hpp
     include/sycl/detail/marray.hpp
+    include/sycl/detail/math_geometric.hpp
+    include/sycl/detail/math_half.hpp
+    include/sycl/detail/math_integer.hpp
+    include/sycl/detail/math_native.hpp
+    include/sycl/detail/math_relational.hpp
     include/sycl/detail/math.hpp
     include/sycl/detail/memory_order.hpp
     include/sycl/detail/memory_scope.hpp
