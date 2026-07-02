@@ -642,8 +642,11 @@ template <detail::NonScalar NonScalar, typename Ptr>
 auto frexp(NonScalar x, Ptr exp) {
   using ReturnT = typename detail::non_scalar_return_type<NonScalar>::type;
   ReturnT result;
-  for (std::size_t i = 0; i < x.size(); i++)
-    result[i] = frexp(x[i], &(*exp)[i]);
+  for (std::size_t i = 0; i < x.size(); i++) {
+    int exponent;
+    result[i] = frexp(x[i], &exponent);
+    (*exp)[i] = exponent;
+  }
   return result;
 }
 
@@ -700,8 +703,11 @@ template <typename NonScalar, typename Ptr>
 auto lgamma_r(NonScalar x, Ptr signp) {
   using ReturnT = typename detail::non_scalar_return_type<NonScalar>::type;
   ReturnT result;
-  for (std::size_t i = 0; i < x.size(); i++)
-    result[i] = lgamma_r(x[i], &(*signp)[i]);
+  for (std::size_t i = 0; i < x.size(); i++) {
+    int sign;
+    result[i] = lgamma_r(x[i], &sign);
+    (*signp)[i] = sign;
+  }
   return result;
 }
 
@@ -796,25 +802,36 @@ auto pown(NonScalar1 x, NonScalar2 y) {
 }
 
 template <typename Ptr> float remquo(float x, float y, Ptr quo) {
-  int q;
-  const float r = std::remquo(x, y, &q);
-  *quo = q;
+  const float r = std::remainder(x, y);
+  const float n = (x - r) / y;
+  const int q = static_cast<int>(std::round(n));
+  int qout = std::abs(q) & 0x7f;
+  if (q < 0)
+    qout = -qout;
+  *quo = qout;
   return r;
 }
 
 template <typename Ptr> double remquo(double x, double y, Ptr quo) {
-  int q;
-  const double r = std::remquo(x, y, &q);
-  *quo = q;
+  const double r = std::remainder(x, y);
+  const double n = (x - r) / y;
+  const int q = static_cast<int>(std::round(n));
+  int qout = std::abs(q) & 0x7f;
+  if (q < 0)
+    qout = -qout;
+  *quo = qout;
   return r;
 }
 
 template <typename Ptr> half remquo(half x, half y, Ptr quo) {
-  half r = std::remainder(static_cast<float>(x), static_cast<float>(y));
-  float float_n =
+  const half r = std::remainder(static_cast<float>(x), static_cast<float>(y));
+  const float float_n =
       (static_cast<float>(x) - static_cast<float>(r)) / static_cast<float>(y);
-  int q = static_cast<int>(std::round(float_n));
-  *quo = q;
+  const int q = static_cast<int>(std::round(float_n));
+  int qout = std::abs(q) & 0x7f;
+  if (q < 0)
+    qout = -qout;
+  *quo = qout;
   return half(r);
 }
 
@@ -822,8 +839,11 @@ template <typename NonScalar1, typename NonScalar2, typename Ptr>
 auto remquo(NonScalar1 x, NonScalar2 y, Ptr quo) {
   using ReturnT = typename detail::non_scalar_return_type<NonScalar1>::type;
   ReturnT result;
-  for (std::size_t i = 0; i < x.size(); i++)
-    result[i] = remquo(x[i], y[i], &(*quo)[i]);
+  for (std::size_t i = 0; i < x.size(); i++) {
+    int q;
+    result[i] = remquo(x[i], y[i], &q);
+    (*quo)[i] = q;
+  }
   return result;
 }
 
@@ -863,8 +883,11 @@ template <detail::NonScalar NonScalar, typename Ptr>
 auto sincos(NonScalar x, Ptr cosval) {
   using ReturnT = typename detail::non_scalar_return_type<NonScalar>::type;
   ReturnT result;
-  for (std::size_t i = 0; i < x.size(); i++)
-    result[i] = sincos(x[i], &(*cosval)[i]);
+  for (std::size_t i = 0; i < x.size(); i++) {
+    typename NonScalar::value_type cos_value;
+    result[i] = sincos(x[i], &cos_value);
+    (*cosval)[i] = cos_value;
+  }
   return result;
 }
 
