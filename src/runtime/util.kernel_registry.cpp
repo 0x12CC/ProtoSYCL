@@ -34,6 +34,14 @@ get_attribute_registry() {
   return attribute_registry;
 }
 
+#if defined(PROTOSYCL_REFLECTION)
+void set_kernel_attributes(const std::type_info &kernel_function,
+                           kernel_attribute_list attributes) {
+  const std::string key = demangle_name(kernel_function.name());
+  get_attribute_registry()[key] = std::move(attributes);
+}
+#endif
+
 kernel_attribute_list get_kernel_attributes(const kernel_id &id) {
   const auto &kernel_registry = get_kernel_registry();
   const auto &attribute_registry = get_attribute_registry();

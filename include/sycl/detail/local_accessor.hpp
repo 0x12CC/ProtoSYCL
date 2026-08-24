@@ -289,7 +289,7 @@ public:
 
 private:
   friend std::hash<accessor>;
-  friend const void *detail::get_accessor_data_pointer(const accessor &);
+  friend const void *detail::get_accessor_data_pointer<>(const accessor &);
 
   std::shared_ptr<
       detail::local_accessor_impl<std::remove_const_t<DataT>, Dimensions>>

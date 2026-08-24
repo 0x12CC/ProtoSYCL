@@ -142,18 +142,6 @@ public:
 
   template <typename Param> typename Param::return_type get_info() const;
 
-  template <>
-  typename info::queue::context::return_type
-  get_info<info::queue::context>() const {
-    return get_context();
-  }
-
-  template <>
-  typename info::queue::device::return_type
-  get_info<info::queue::device>() const {
-    return get_device();
-  }
-
   template <typename Param>
   typename Param::return_type get_backend_info() const;
 
@@ -483,6 +471,19 @@ private:
   std::shared_ptr<detail::queue_impl> m_impl{
       std::make_shared<detail::queue_impl>()};
 };
+
+// Explicit specializations at namespace scope (see event.hpp for rationale).
+template <>
+inline typename info::queue::context::return_type
+queue::get_info<info::queue::context>() const {
+  return get_context();
+}
+
+template <>
+inline typename info::queue::device::return_type
+queue::get_info<info::queue::device>() const {
+  return get_device();
+}
 
 } // namespace sycl
 

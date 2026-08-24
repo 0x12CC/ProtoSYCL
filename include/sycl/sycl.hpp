@@ -61,3 +61,10 @@
 #include "detail/sub_group.hpp"
 #include "detail/usm.hpp"
 #include "detail/vec.hpp"
+
+#if defined(PROTOSYCL_REFLECTION)
+// KHR-style compile-time properties and reflection-based free-function kernels
+// are only available on the GCC/reflection toolchain.
+#include "khr/free_function_kernel.hpp"
+#include "khr/properties.hpp"
+#endif

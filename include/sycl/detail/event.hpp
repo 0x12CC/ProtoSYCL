@@ -117,35 +117,11 @@ public:
 
   template <typename Param> typename Param::return_type get_info() const;
 
-  template <>
-  typename info::event::command_execution_status::return_type
-  get_info<info::event::command_execution_status>() const {
-    return m_impl->get_status();
-  }
-
   template <typename Param>
   typename Param::return_type get_backend_info() const;
 
   template <typename Param>
   typename Param::return_type get_profiling_info() const;
-
-  template <>
-  typename info::event_profiling::command_end::return_type
-  get_profiling_info<info::event_profiling::command_submit>() const {
-    return 0;
-  }
-
-  template <>
-  typename info::event_profiling::command_end::return_type
-  get_profiling_info<info::event_profiling::command_start>() const {
-    return 0;
-  }
-
-  template <>
-  typename info::event_profiling::command_end::return_type
-  get_profiling_info<info::event_profiling::command_end>() const {
-    return 0;
-  }
 
   friend bool operator==(const event &lhs, const event &rhs) {
     return lhs.m_impl.get() == rhs.m_impl.get();
@@ -159,6 +135,32 @@ private:
   std::shared_ptr<detail::event_impl> m_impl{
       std::make_shared<detail::event_impl>()};
 };
+
+// Explicit specializations at namespace scope (GCC rejects in-class member
+// template specializations; this form is standard C++ and works on clang too).
+template <>
+inline typename info::event::command_execution_status::return_type
+event::get_info<info::event::command_execution_status>() const {
+  return m_impl->get_status();
+}
+
+template <>
+inline typename info::event_profiling::command_end::return_type
+event::get_profiling_info<info::event_profiling::command_submit>() const {
+  return 0;
+}
+
+template <>
+inline typename info::event_profiling::command_end::return_type
+event::get_profiling_info<info::event_profiling::command_start>() const {
+  return 0;
+}
+
+template <>
+inline typename info::event_profiling::command_end::return_type
+event::get_profiling_info<info::event_profiling::command_end>() const {
+  return 0;
+}
 
 inline std::shared_ptr<detail::event_impl> detail::get_event_impl(event ev) {
   return ev.m_impl;
