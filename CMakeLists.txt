@@ -1,65 +1,109 @@
 cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 project(ProtoSYCL VERSION 1.0 LANGUAGES CXX C)
 
-set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(Clang REQUIRED)
-find_package(LLVM REQUIRED CONFIG)
-include(AddLLVM)
+# Toolchain selection. `clang` (default) builds the compiler artifacts (rewriter,
+# clang plugin, LLVM pass plugin) and drives compilation through the sycl++
+# wrapper. `gcc` drops all of those and instead relies on C++26 reflection in the
+# library to read kernel properties, compiling directly with a reflection-capable
+# g++ (-std=c++26 -freflection). Both paths share the same headers, runtime, and
+# tests.
+set(PROTOSYCL_TOOLCHAIN "clang" CACHE STRING "ProtoSYCL toolchain: clang or gcc")
+set_property(CACHE PROTOSYCL_TOOLCHAIN PROPERTY STRINGS clang gcc)
+if(NOT PROTOSYCL_TOOLCHAIN STREQUAL "clang" AND NOT PROTOSYCL_TOOLCHAIN STREQUAL "gcc")
+    message(FATAL_ERROR "PROTOSYCL_TOOLCHAIN must be 'clang' or 'gcc' (got '${PROTOSYCL_TOOLCHAIN}')")
+endif()
+message(STATUS "ProtoSYCL toolchain: ${PROTOSYCL_TOOLCHAIN}")
+
+if(PROTOSYCL_TOOLCHAIN STREQUAL "clang")
+    set(CMAKE_CXX_STANDARD 23)
+else()
+    set(CMAKE_CXX_STANDARD 26)
+endif()
 
 if(CMAKE_GENERATOR STREQUAL "Ninja")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color=always")
 endif()
 
-# sycl++ Compiler Wrapper
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/sycl++
-    COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/sycl++
-        ${CMAKE_CURRENT_BINARY_DIR}/sycl++
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/sycl++
-    COMMENT "Copying sycl++ compiler wrapper to build directory"
-)
-add_custom_target(ProtoSYCLCompilerWrapper ALL
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/sycl++
-)
-set(CMAKE_CXX_COMPILER ${CMAKE_CURRENT_BINARY_DIR}/sycl++)
+if(PROTOSYCL_TOOLCHAIN STREQUAL "clang")
+    # ------------------------------------------------------------------
+    # Clang path: compiler artifacts + sycl++ wrapper.
+    # ------------------------------------------------------------------
+    find_package(Clang REQUIRED)
+    find_package(LLVM REQUIRED CONFIG)
+    include(AddLLVM)
 
-# Compiler Plugin
-add_llvm_library(clangProtoSYCL SHARED src/compiler/clang_plugin.cpp)
-target_include_directories(clangProtoSYCL PRIVATE ${CLANG_INCLUDE_DIRS} ${LLVM_INCLUDE_DIRS})
-target_compile_definitions(clangProtoSYCL PRIVATE ${CLANG_DEFINITIONS} ${LLVM_DEFINITIONS})
-if(APPLE)
-    target_link_options(clangProtoSYCL PRIVATE -undefined dynamic_lookup)
+    # sycl++ Compiler Wrapper
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/sycl++
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/scripts/sycl++
+            ${CMAKE_CURRENT_BINARY_DIR}/sycl++
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/sycl++
+        COMMENT "Copying sycl++ compiler wrapper to build directory"
+    )
+    add_custom_target(ProtoSYCLCompilerWrapper ALL
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/sycl++
+    )
+    set(CMAKE_CXX_COMPILER ${CMAKE_CURRENT_BINARY_DIR}/sycl++)
+
+    # Compiler Plugin
+    add_llvm_library(clangProtoSYCL SHARED src/compiler/clang_plugin.cpp)
+    target_include_directories(clangProtoSYCL PRIVATE ${CLANG_INCLUDE_DIRS} ${LLVM_INCLUDE_DIRS})
+    target_compile_definitions(clangProtoSYCL PRIVATE ${CLANG_DEFINITIONS} ${LLVM_DEFINITIONS})
+    if(APPLE)
+        target_link_options(clangProtoSYCL PRIVATE -undefined dynamic_lookup)
+    endif()
+    add_dependencies(clangProtoSYCL ProtoSYCLCompilerWrapper)
+
+    # LLVM Pass Plugin
+    add_llvm_pass_plugin(llvmProtoSYCL src/compiler/llvm_plugin.cpp)
+    target_include_directories(llvmProtoSYCL PRIVATE ${CLANG_INCLUDE_DIRS} ${LLVM_INCLUDE_DIRS})
+    target_compile_definitions(llvmProtoSYCL PRIVATE ${CLANG_DEFINITIONS} ${LLVM_DEFINITIONS})
+    if(APPLE)
+        target_link_options(llvmProtoSYCL PRIVATE -undefined dynamic_lookup)
+    endif()
+    add_dependencies(llvmProtoSYCL ProtoSYCLCompilerWrapper)
+
+    # Attribute Rewriter
+    add_library(ProtoSYCLRewriter SHARED
+        src/compiler/attribute_rewriter.cpp
+    )
+    target_compile_options(ProtoSYCLRewriter PRIVATE -fPIC)
+    add_dependencies(ProtoSYCLRewriter ProtoSYCLCompilerWrapper)
+
+    # Compiler Dependencies
+    add_custom_target(ProtoSYCLCompilerDependencies ""
+        DEPENDS
+            clangProtoSYCL
+            llvmProtoSYCL
+            ProtoSYCLRewriter
+            ProtoSYCLCompilerWrapper
+    )
+else()
+    # ------------------------------------------------------------------
+    # GCC path: no compiler artifacts, reflection in the library instead.
+    # Verify the reflection library facilities are present up front.
+    # ------------------------------------------------------------------
+    include(CheckCXXSourceCompiles)
+    set(CMAKE_REQUIRED_FLAGS "-std=c++26 -freflection")
+    check_cxx_source_compiles("
+        #include <meta>
+        #ifndef __cpp_lib_reflection
+        #error missing __cpp_lib_reflection
+        #endif
+        int main() { constexpr std::meta::info r = ^^int; static_assert(r == ^^int); }
+    " PROTOSYCL_HAVE_REFLECTION)
+    unset(CMAKE_REQUIRED_FLAGS)
+    if(NOT PROTOSYCL_HAVE_REFLECTION)
+        message(FATAL_ERROR
+            "PROTOSYCL_TOOLCHAIN=gcc requires a C++26 reflection-capable compiler: "
+            "'<meta>' with __cpp_lib_reflection under '-std=c++26 -freflection'. "
+            "Point CMAKE_CXX_COMPILER at e.g. g++ 16.1+ (reflection build).")
+    endif()
 endif()
-add_dependencies(clangProtoSYCL ProtoSYCLCompilerWrapper)
-
-# LLVM Pass Plugin
-add_llvm_pass_plugin(llvmProtoSYCL src/compiler/llvm_plugin.cpp)
-target_include_directories(llvmProtoSYCL PRIVATE ${CLANG_INCLUDE_DIRS} ${LLVM_INCLUDE_DIRS})
-target_compile_definitions(llvmProtoSYCL PRIVATE ${CLANG_DEFINITIONS} ${LLVM_DEFINITIONS})
-if(APPLE)
-    target_link_options(llvmProtoSYCL PRIVATE -undefined dynamic_lookup)
-endif()
-add_dependencies(llvmProtoSYCL ProtoSYCLCompilerWrapper)
-
-# Attribute Rewriter
-add_library(ProtoSYCLRewriter SHARED
-    src/compiler/attribute_rewriter.cpp
-)
-target_compile_options(ProtoSYCLRewriter PRIVATE -fPIC)
-add_dependencies(ProtoSYCLRewriter ProtoSYCLCompilerWrapper)
-
-# Compiler Dependencies
-add_custom_target(ProtoSYCLCompilerDependencies ""
-    DEPENDS
-        clangProtoSYCL
-        llvmProtoSYCL
-        ProtoSYCLRewriter
-        ProtoSYCLCompilerWrapper
-)
 
 # Runtime Library
 add_library(ProtoSYCL STATIC
@@ -141,12 +185,21 @@ add_library(ProtoSYCL STATIC
     src/runtime/util.task_graph.cpp
 )
 target_include_directories(ProtoSYCL PUBLIC include)
-target_compile_options(ProtoSYCL
-    INTERFACE
-        -fplugin=$<TARGET_FILE:clangProtoSYCL>
-        -Xclang -fpass-plugin=$<TARGET_FILE:llvmProtoSYCL>
-)
-add_dependencies(ProtoSYCL ProtoSYCLCompilerDependencies)
+if(PROTOSYCL_TOOLCHAIN STREQUAL "clang")
+    # Consumers (and the runtime TUs) are compiled through sycl++/clang++ with
+    # the plugins loaded; the plugins carry kernel properties into the registry.
+    target_compile_options(ProtoSYCL
+        INTERFACE
+            -fplugin=$<TARGET_FILE:clangProtoSYCL>
+            -Xclang -fpass-plugin=$<TARGET_FILE:llvmProtoSYCL>
+    )
+    add_dependencies(ProtoSYCL ProtoSYCLCompilerDependencies)
+else()
+    # GCC path: no plugins. Enable reflection everywhere and switch the library
+    # to its reflection-based property plumbing via PROTOSYCL_REFLECTION.
+    target_compile_options(ProtoSYCL PUBLIC -std=c++26 -freflection)
+    target_compile_definitions(ProtoSYCL PUBLIC PROTOSYCL_REFLECTION=1)
+endif()
 
 # Testing
 enable_testing()
@@ -160,3 +213,8 @@ endfunction(add_protosycl_test)
 add_protosycl_test(example_test test/example.cpp)
 add_protosycl_test(typical_test test/typical.cpp)
 add_protosycl_test(attrs_test test/attrs.cpp)
+
+if(PROTOSYCL_TOOLCHAIN STREQUAL "gcc")
+    # Reflection-only: KHR compile-time properties + free-function kernels.
+    add_protosycl_test(khr_free_function_test test/khr_free_function.cpp)
+endif()

@@ -400,7 +400,7 @@ private:
   friend iterator;
   friend const_iterator;
   friend std::hash<accessor>;
-  friend const void *detail::get_accessor_data_pointer(const accessor &);
+  friend const void *detail::get_accessor_data_pointer<>(const accessor &);
 
   template <typename AllocatorT>
   void check_range(const buffer<DataT, Dimensions, AllocatorT> &bufferRef,
@@ -604,7 +604,7 @@ public:
 
 private:
   friend std::hash<accessor>;
-  friend const void *detail::get_accessor_data_pointer(const accessor &);
+  friend const void *detail::get_accessor_data_pointer<>(const accessor &);
 
   std::shared_ptr<detail::accessor_impl<std::remove_const_t<DataT>, Dimensions>>
       m_impl{std::make_shared<

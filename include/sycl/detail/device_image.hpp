@@ -26,7 +26,7 @@ public:
   }
 
 private:
-  friend device_image<State> detail::create_device_image();
+  friend device_image<State> detail::create_device_image<State>();
   friend std::hash<device_image>;
 
   device_image() {}

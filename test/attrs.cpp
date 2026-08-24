@@ -2,6 +2,34 @@
 #include <print>
 #include <sycl/sycl.hpp>
 
+#if defined(PROTOSYCL_REFLECTION)
+// GCC/reflection path: the property is expressed as a P3394 annotation on a
+// named functor and read from the library via C++26 reflection (no compiler
+// plugin). For a non-template call operator the annotation may sit on
+// operator() directly; for a template call operator g++ 16.1 cannot read
+// annotations off the template, so it sits on the functor type.
+namespace {
+using sycl::detail::kernel_attributes::reqd_work_group_size_1d;
+
+struct LambdaKernel {
+  [[=reqd_work_group_size_1d{4}]] void operator()(sycl::nd_item<1>) const {}
+};
+
+struct [[=reqd_work_group_size_1d{4}]] LambdaTemplateKernel {
+  template <typename ItemT> void operator()(ItemT) const {}
+};
+} // namespace
+
+void run_lambda_kernel(sycl::queue q, sycl::nd_range<1> range) {
+  q.parallel_for<LambdaKernel>(range, LambdaKernel{});
+  q.wait();
+}
+
+void run_lambda_template_kernel(sycl::queue q, sycl::nd_range<1> range) {
+  q.parallel_for<LambdaTemplateKernel>(range, LambdaTemplateKernel{});
+  q.wait();
+}
+#else
 void run_lambda_kernel(sycl::queue q, sycl::nd_range<1> range) {
   q.parallel_for<struct LambdaKernel>(
       range, [](sycl::nd_item<1> it) [[sycl::reqd_work_group_size(4)]] {});
@@ -13,6 +41,7 @@ void run_lambda_template_kernel(sycl::queue q, sycl::nd_range<1> range) {
       range, [](auto it) [[sycl::reqd_work_group_size(4)]] {});
   q.wait();
 }
+#endif
 
 int main() {
   sycl::queue q;
