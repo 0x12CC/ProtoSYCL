@@ -61,3 +61,5 @@
 #include "detail/sub_group.hpp"
 #include "detail/usm.hpp"
 #include "detail/vec.hpp"
+
+#include "detail/khr/free_function_kernels.hpp"
