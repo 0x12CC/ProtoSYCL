@@ -131,6 +131,7 @@ add_library(ProtoSYCL STATIC
     include/sycl/detail/util.task_graph.hpp
     include/sycl/detail/util.task.hpp
     include/sycl/detail/vec.hpp
+    include/sycl/detail/khr/free_function_kernels.hpp
     src/runtime/context.cpp
     src/runtime/exception.cpp
     src/runtime/kernel_bundle.cpp
@@ -160,3 +161,4 @@ endfunction(add_protosycl_test)
 add_protosycl_test(example_test test/example.cpp)
 add_protosycl_test(typical_test test/typical.cpp)
 add_protosycl_test(attrs_test test/attrs.cpp)
+add_protosycl_test(free_function_kernels test/khr/free_function_kernels.cpp)
